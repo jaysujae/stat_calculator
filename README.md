@@ -56,5 +56,16 @@ here, let's say n*Var(Xn) as M(Xn).
 
 As there is no too big number in this equation, this doesn't suffer from catastrophic cancellation problem.
 
-
-
+3. Can we consider a special case, where small group is having much higher number than other numbers?
+For this case, I think we can use this property.
+```
+E(aX+b) = aE(x) + b, and
+Var(aX+b) = a^2E(X)
+```
+Since small group is way larger than other group,
+we can consider calculating in two different groups and then add two group's statistics later.
+More specifically, we can change the values into 1/10000 X - u ( where u is mean of small numbers group)
+Then we can practically say small number's variance and mean is 0. 
+Then while calculating, when small number comes then we just add count of small number.
+For adding two group's statistics, I'll use this formula from wikipedia.
+![formula absolute URL](https://wikimedia.org/api/rest_v1/media/math/render/svg/dd88631832bace8b86e5b41ffcfa78f50f1b6602)
