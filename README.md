@@ -15,7 +15,7 @@ make all
 
 ## Problem & Solution
 
-1. We want to get mean and variance of given values.
+0. We want to get mean and variance of given values.
 - Simple. Use the definition of mean and variance
 ```
 Mean(Xn) = sum(X1,X2,...Xn) / n ;
@@ -23,7 +23,7 @@ Var(Xn) = sum( (X1-Xm)^2, (X2-Xm)^2, ...(Xn-Xm)^2) / n;
 ```
 - let's call it 'Naive' method in the code.
 
-2. We want to get mean and variance of stream data, with acceptable latency (can't recompute mean and variance everytime value comses)
+1. We want to get mean and variance of stream data, with acceptable latency (can't recompute mean and variance everytime value comses)
 - Now we need to think about how we can reuse the calculation we did before.
 - For mean, it is not hard to come up with the idea
 ```
@@ -43,3 +43,18 @@ Var(Xn)
 - Therefore if we save mean value and mean of square value, we can use a new mean value formula and get a new variance as well.
 - We can expect some problems with this method, like overflow and precisions especially for float case.
 - Let's call it 'Formula' method.
+
+2. As I said above, 'Formula' method is not numerically stable because of 'catastrophic cancellation' effect. This leads to a natural line of thinking of using variance of previous calculation directly.
+- This is called "Welford algorithm"
+- Since Var(Xn) = E(Xn^2) - E(Xn)^2
+-> n * Var(Xn) = Sum(Xn^2) - n * E(Xn)^2
+= n * Var(Xn) = Sum(Xn-1 ^2) + Xn^2 - (n-1)*E(Xn-1)^2 + (n-1)*E(Xn-1)^2 - n * E(Xn)^2
+= (n-1)*Var(Xn-1) + Xn^2 + (n-1)*E(Xn-1)^2 - n * E(Xn)^2
+since E(Xn) = E(Xn-1) + (Xn - E(Xn-1)) / n
+= (n-1)*Var(Xn-1) + (Xn - E(Xn)) ( Xn - E(Xn-1)).
+here, let's say n*Var(Xn) as M(Xn).
+
+As there is no too big number in this equation, this doesn't suffer from catastrophic cancellation problem.
+
+
+

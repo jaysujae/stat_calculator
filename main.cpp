@@ -91,19 +91,56 @@ class Formula_Calculator : public Calculator{
     double previous_square_mean;
 };
 
+class Welford_Calculator : public Calculator{
+    public:
+    void Put(long long num)
+    {   
+        current_num = num;
+        counts++;
+    }
+    double Get_Mean()
+    {
+        previous_mean = new_mean;
+        new_mean = previous_mean + (double) (current_num - previous_mean) / counts;
+        return new_mean;
+    }
+    double Get_Variance()
+    {
+        auto current_m_value = m_value;
+        m_value = current_m_value + (current_num - new_mean) * (current_num - previous_mean);
+        return m_value/counts;
+    }
+    void Print()
+    {
+        cout << "Welford Mean : " << Get_Mean() << " Welford Variance : " << Get_Variance() << "\n";
+        return;
+    }
+    private:
+    long long counts;
+    long long current_num;
+
+    double previous_mean;
+    double new_mean;
+
+    double m_value;
+};
+
 
 int main()
 {
     auto naive_cal = new Naive_Calculator();
     auto formula_cal = new Formula_Calculator();
+    auto welford_cal = new Welford_Calculator();
     long long num;
     while (cin >> num)
     {
         naive_cal->Put(num);
         formula_cal->Put(num);
+        welford_cal->Put(num);
 
         naive_cal->Print();
         formula_cal->Print();
+        welford_cal->Print();
 
         cout << endl;
     }
