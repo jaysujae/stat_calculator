@@ -7,6 +7,11 @@ This codebase deals with how to efficiently calculate mean and variance from str
 make all
 ```
 
+## Things to consider
+1. 'catastrophic cancellation'
+- `the phenomenon that subtracting good approximations to two nearby numbers may yield a very bad approximation to the difference of the original numbers` - Wikipedia
+
+- rough rule is that if x and y match up to m significant figures, then up to m significant figures can be lost.
 
 ## Problem & Solution
 
@@ -36,7 +41,5 @@ Var(Xn)
 = mean(Xn^2) - mean(Xn)^2
 ```
 - Therefore if we save mean value and mean of square value, we can use a new mean value formula and get a new variance as well.
-- We can expect some problems with this method, like overflow and precision.
+- We can expect some problems with this method, like overflow and precisions especially for float case.
 - Let's call it 'Formula' method.
-
-

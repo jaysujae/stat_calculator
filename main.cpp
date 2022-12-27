@@ -4,7 +4,34 @@ using namespace std;
 class Calculator
 {
 public:
-    double Naive_Get_Mean()
+    virtual void Put(long long num){
+
+    }
+
+    virtual double Get_Mean(){
+
+    }
+
+    virtual double Get_Variance(){
+
+    }
+
+    virtual void Print(){
+
+    }
+
+private:
+    
+};
+
+
+class Naive_Calculator : public Calculator{
+    public:
+    void Put(long long num){
+        nums.push_back(num);
+    }
+
+    double Get_Mean()
     {
         long long sum = 0;
         for (auto &num : nums)
@@ -13,9 +40,9 @@ public:
         }
         return (double)sum / nums.size();
     }
-    double Naive_Get_Variance()
+    double Get_Variance()
     {
-        auto mean = Naive_Get_Mean();
+        auto mean = Get_Mean();
         double difference_sum = 0;
         for (auto &num : nums)
         {
@@ -23,38 +50,40 @@ public:
         }
         return (double)difference_sum / nums.size();
     }
-    double Formula_Get_Mean()
+    void Print()
+    {
+        cout << "Naive Mean : " << Get_Mean() << " Naive Variance : " << Get_Variance() << "\n";
+        return;
+    }
+    private :
+        vector<long long> nums;
+};
+
+class Formula_Calculator : public Calculator{
+    public:
+    void Put(long long num)
+    {   
+        current_num = num;
+        counts++;
+    }
+    double Get_Mean()
     {
         auto new_mean = previous_mean + (double) (current_num - previous_mean) / counts;
         previous_mean = new_mean;
         return new_mean;
     }
-    double Formula_Get_Variance()
+    double Get_Variance()
     {
         auto new_square_mean = previous_square_mean + (double) ( (current_num*current_num) - previous_square_mean) / counts;
         previous_square_mean = new_square_mean;
         return new_square_mean - (previous_mean) * (previous_mean);
     }
-    void Put(long long num)
+    void Print()
     {
-        nums.push_back(num);
-        current_num = num;
-        counts++;
-    }
-    void Print_Naive()
-    {
-        cout << "Naive Mean : " << Naive_Get_Mean() << " Naive Variance : " << Naive_Get_Variance() << "\n";
+        cout << "Formula Mean : " << Get_Mean() << " Formula Variance : " << Get_Variance() << "\n";
         return;
     }
-    void Print_Formula()
-    {
-        cout << "Formula Mean : " << Formula_Get_Mean() << " Formula Variance : " << Formula_Get_Variance() << "\n";
-        return;
-    }
-
-private:
-    vector<long long> nums;
-    
+    private:
     long long counts;
     long long current_num;
 
@@ -62,15 +91,20 @@ private:
     double previous_square_mean;
 };
 
+
 int main()
 {
-    auto cal = new Calculator();
+    auto naive_cal = new Naive_Calculator();
+    auto formula_cal = new Formula_Calculator();
     long long num;
     while (cin >> num)
     {
-        cal->Put(num);
-        cal->Print_Naive();
-        cal->Print_Formula();
+        naive_cal->Put(num);
+        formula_cal->Put(num);
+
+        naive_cal->Print();
+        formula_cal->Print();
+
         cout << endl;
     }
     return 0;
