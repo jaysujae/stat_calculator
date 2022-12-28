@@ -7,6 +7,10 @@ This codebase deals with how to efficiently calculate mean and variance from str
 make all
 ```
 
+## Reference
+- https://nestedsoftware.com/2018/03/20/calculating-a-moving-average-on-streaming-data-5a7k.22879.html
+- https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+
 ## Things to consider
 1. 'catastrophic cancellation'
 - `the phenomenon that subtracting good approximations to two nearby numbers may yield a very bad approximation to the difference of the original numbers` - Wikipedia
@@ -69,3 +73,23 @@ Then we can practically say small number's variance and mean is 0.
 Then while calculating, when small number comes then we just add count of small number.
 For adding two group's statistics, I'll use this formula from wikipedia.
 ![formula absolute URL](https://wikimedia.org/api/rest_v1/media/math/render/svg/dd88631832bace8b86e5b41ffcfa78f50f1b6602)
+
+4. Can we support a sliding window ability as well ? 
+Most direct method would be saving all data and re-calculating for each condition. (1ms, 100ms, 1s, 1m ...)
+But that would suffer from 1. memory limit and 2. re-calculation latency
+
+More better method would be having a buffer (deque) of and use of existing calculation.
+If a fixed time slot contains a fixed number of elements(meaning an element comes in every fixed amount of time), than we can simply have a fixed size deque, and then pop from front and push the new number back.
+In that case, size would be same.
+Therefore, mean(Xn) = mean(Xn-1) + (Xn - X(0)) / n and
+M(Xn) = M(Xn-1) + (xn - x0)(xn + x0 - xn - x(n-1))
+
+And then we can have many buckets for different time slot ( 1ms, 100ms, 1s, 5m ..), so we can support them quickly.
+
+Then to support a custom time slot, we can use adding two group's stat method.
+
+If we can't expect same number of elements coming in a fixed timeslot, then we can't use the formula above. So now time and element is indepedent, we need to have a separate function like, `GetLastStat(time, currentTime)`
+We can keep track of reasonable numbers, and stats, and use adding method above.
+
+So like, we we'll keep track of every 1s, 1ms, 1minute's stat.
+And if it's 00:05:30 and we want to get last 5minute's data, then we can add last 30 second's data + last 3 minutes' data + last 30 second's data.

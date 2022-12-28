@@ -191,12 +191,87 @@ class Special_Calculator : public Calculator{
 };
 
 
+
+struct Window {
+    deque<int> timeslot;
+    int size;
+};
+
+class Time_Calculator : public Calculator{
+    public:
+
+    Time_Calculator() {
+        window = Window{deque<int>{}, 100};
+    }
+
+    void Put(double num)
+    {   
+        milliseconds++;
+        window.timeslot.push_back(num);
+        current_num = num;
+        if( (milliseconds-1) % 1000 == 0){
+            stats.push_back(stat{
+                0,1000,0
+            });
+        }
+        if(window.timeslot.size() >= window.size){
+            popped_num = window.timeslot.front();
+            window.timeslot.pop_front();
+            return;
+        }
+    }
+    double Get_Mean()
+    {
+        previous_mean = current_mean;
+        current_mean = previous_mean + (current_num - popped_num) / window.size;
+        stats[ (milliseconds-1) / 1000].mean = current_mean;
+        return current_mean;
+    }
+
+    double Get_Variance()
+    {
+        m_value = m_value + (current_num - popped_num) * (current_num + popped_num - current_mean - previous_mean);
+        stats[ (milliseconds-1) / 1000].mean = m_value;
+        return m_value / window.size;
+    }
+
+    stat Get_Stat(int units)
+    {
+        stat answer;
+        for(int i = stats.size() -1 ; i >= stats.size() - 1 - units; i--){
+            answer = answer + stats[i];
+        }
+        return answer;
+    }
+
+    void Print()
+    {
+        cout << "Time Mean : " << Get_Mean() << " Time Variance : " << Get_Variance() << "\n";
+        return;
+    }
+
+    private:
+    long long milliseconds;
+    double current_num;
+    double popped_num;
+
+    double current_mean = 0;
+    double previous_mean = 0;
+
+    double m_value;
+
+    Window window;
+    vector<stat> stats;
+};
+
+
 int main()
 {
     auto naive_cal = new Naive_Calculator();
     auto formula_cal = new Formula_Calculator();
     auto welford_cal = new Welford_Calculator();
     auto special_cal = new Special_Calculator(100, 0.5);
+    auto time_cal = new Time_Calculator();
     double num;
     cout << fixed;
 
@@ -206,11 +281,13 @@ int main()
         formula_cal->Put(num);
         welford_cal->Put(num);
         special_cal->Put(num);
+        time_cal->Put(num);
 
         naive_cal->Print();
         formula_cal->Print();
         welford_cal->Print();
         special_cal->Print();
+        time_cal->Print();
 
         cout << endl;
     }
