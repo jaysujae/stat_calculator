@@ -1,127 +1,79 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-class Calculator
+class Integer_Calculator
 {
 public:
-    virtual void Put(double num){
-
-    }
-
-    virtual double Get_Mean(){
-        return 0.0;
+    virtual void Put(long long num){
     }
 
     virtual double Get_Variance(){
-        return 0.9;
+        return 0.0;
     }
 
     virtual void Print(){
-
     }
-
-private:
-    
 };
 
-
-class Naive_Calculator : public Calculator{
-    public:
-    void Put(double num){
-        nums.push_back(num);
+class Float_Calculator
+{
+public:
+    virtual void Put(double num){
     }
 
-    double Get_Mean()
-    {
-        long long sum = 0;
-        for (auto &num : nums)
-        {
-            sum += num;
-        }
-        return (double)sum / nums.size();
+    virtual double Get_Variance(){
+        return 0.0;
     }
-    double Get_Variance()
-    {
-        auto mean = Get_Mean();
-        double difference_sum = 0;
-        for (auto &num : nums)
-        {
-            difference_sum += ((double)num - mean) * ((double)num - mean);
-        }
-        return (double)difference_sum / nums.size();
+
+    virtual void Print(){
     }
-    void Print()
-    {
-        cout << "Naive Mean : " << Get_Mean() << " Naive Variance : " << Get_Variance() << "\n";
-        return;
-    }
-    private :
-        vector<double> nums;
 };
 
-class Formula_Calculator : public Calculator{
+class Q1_Calculator : public Integer_Calculator{
     public:
-    void Put(double num)
+    void Put(long long num)
     {   
-        current_num = num;
+        sum_of_x += num;
+        sum_of_x_square += num*num;
         counts++;
     }
-    double Get_Mean()
-    {
-        auto new_mean = previous_mean + (double) (current_num - previous_mean) / counts;
-        previous_mean = new_mean;
-        return new_mean;
-    }
     double Get_Variance()
     {
-        auto new_square_mean = previous_square_mean + (double) ( (current_num*current_num) - previous_square_mean) / counts;
-        previous_square_mean = new_square_mean;
-        return new_square_mean - (previous_mean) * (previous_mean);
+        return sum_of_x_square / counts - pow(sum_of_x / counts, 2);
     }
     void Print()
     {
-        cout << "Formula Mean : " << Get_Mean() << " Formula Variance : " << Get_Variance() << "\n";
+        cout << "Q1 Variance : " << Get_Variance() << "\n";
         return;
     }
     private:
+    long long sum_of_x;
+    long long sum_of_x_square;
     long long counts;
-    double current_num;
-
-    double previous_mean;
-    double previous_square_mean;
 };
 
-class Welford_Calculator : public Calculator{
+class Q2_Calculator : public Float_Calculator{
     public:
     void Put(double num)
     {   
-        current_num = num;
         counts++;
-    }
-    double Get_Mean()
-    {
-        previous_mean = new_mean;
-        new_mean = previous_mean + (double) (current_num - previous_mean) / counts;
-        return new_mean;
+
+        auto old_mean = mean;
+		mean = mean + (num - mean) / counts;
+		m_value = m_value +(num - mean) * (num - old_mean);
     }
     double Get_Variance()
     {
-        auto current_m_value = m_value;
-        m_value = current_m_value + (current_num - new_mean) * (current_num - previous_mean);
         return m_value/counts;
     }
     void Print()
     {
-        cout << "Welford Mean : " << Get_Mean() << " Welford Variance : " << Get_Variance() << "\n";
+        cout << "Q2 Variance : " << Get_Variance() << "\n";
         return;
     }
     private:
     long long counts;
-    double current_num;
-
-    double previous_mean;
-    double new_mean;
-
+    double mean;
     double m_value;
 };
 
@@ -144,150 +96,99 @@ struct stat{
     }
 };
 
-class Special_Calculator : public Calculator{
+class Q3_Calculator : public Float_Calculator{
     public:
 
-    Special_Calculator(long long o, double m): order(o), small_numbers_mean(m){
-
-    }
     void Put(double num)
     {   
-        num -= small_numbers_mean;
-        num /= order;
-        if( num < 1){
-            small_numbers_stat.counts++;
+        if(num > 1000){
+            big_calculator.Put(num);
             return;
         }
-        big_numbers_stat.counts++;
-        auto previous_mean = big_numbers_stat.mean;
-        auto new_mean = previous_mean + (double) (num - previous_mean) / (big_numbers_stat.counts);
-        auto m_value = big_numbers_stat.m_value + (num - new_mean) * (num - previous_mean);
-        big_numbers_stat.mean = new_mean;
-        big_numbers_stat.m_value = m_value;
-    }
-    double Get_Mean()
-    {
-        auto combined = (small_numbers_stat+big_numbers_stat);
-        return combined.mean * order + small_numbers_mean;
+        small_calculator.Put(num);
     }
     double Get_Variance()
     {
-        auto combined = (small_numbers_stat+big_numbers_stat);
-        return (combined.m_value / combined.counts) * order * order;
+        big_calculator.Get_Variance() + small_calculator.Get_Variance();
     }
 
     void Print()
     {
-        cout << "Special Mean : " << Get_Mean() << " Special Variance : " << Get_Variance() << "\n";
+        cout << "Q3 Variance : " << Get_Variance() << "\n";
         return;
     }
 
     private:
-    long long order;
-    double small_numbers_mean;
-
-    stat small_numbers_stat;
-    stat big_numbers_stat;
+    Q2_Calculator big_calculator;
+    Q2_Calculator small_calculator;
 };
 
 
-
-struct Window {
-    deque<int> timeslot;
-    int size;
-};
-
-class Time_Calculator : public Calculator{
+class Q4_Calculator : public Float_Calculator{
     public:
-
-    Time_Calculator() {
-        window = Window{deque<int>{}, 100};
-    }
 
     void Put(double num)
     {   
-        milliseconds++;
-        window.timeslot.push_back(num);
-        current_num = num;
-        if( (milliseconds-1) % 1000 == 0){
-            stats.push_back(stat{
-                0,1000,0
-            });
-        }
-        if(window.timeslot.size() >= window.size){
-            popped_num = window.timeslot.front();
-            window.timeslot.pop_front();
-            return;
-        }
-    }
-    double Get_Mean()
-    {
-        previous_mean = current_mean;
-        current_mean = previous_mean + (current_num - popped_num) / window.size;
-        stats[ (milliseconds-1) / 1000].mean = current_mean;
-        return current_mean;
-    }
+        current_timestamp++;
+        counts++;
 
+        num -= sample_mean;
+
+        sum_of_x += num;
+        sum_of_x_square += num * num;
+
+        prefix_sum_of_x[current_timestamp] = sum_of_x;
+        prefix_sum_of_x_square[current_timestamp] = sum_of_x_square;
+    }
     double Get_Variance()
     {
-        m_value = m_value + (current_num - popped_num) * (current_num + popped_num - current_mean - previous_mean);
-        stats[ (milliseconds-1) / 1000].mean = m_value;
-        return m_value / window.size;
+        return sum_of_x_square / counts - pow(sum_of_x / counts, 2);
     }
 
-    stat Get_Stat(int units)
-    {
-        stat answer;
-        for(int i = stats.size() -1 ; i >= stats.size() - 1 - units; i--){
-            answer = answer + stats[i];
-        }
-        return answer;
+    double Get_Variance(long long starting_time){
+        auto sum_it = prefix_sum_of_x.lower_bound(starting_time);
+        auto square_sum_it = prefix_sum_of_x_square.lower_bound(starting_time);
+
+        return square_sum_it->second / counts - pow(sum_it->second/ counts, 2);
     }
 
     void Print()
     {
-        cout << "Time Mean : " << Get_Mean() << " Time Variance : " << Get_Variance() << "\n";
+        cout << " Q4 Variance : " << Get_Variance() << "\n";
         return;
     }
 
     private:
-    long long milliseconds;
-    double current_num;
-    double popped_num;
-
-    double current_mean = 0;
-    double previous_mean = 0;
-
-    double m_value;
-
-    Window window;
-    vector<stat> stats;
+    long long counts;
+    double sample_mean;
+    long long current_timestamp;
+    map<long long, double> prefix_sum_of_x;
+    map<long long, double> prefix_sum_of_x_square;
+    long long sum_of_x;
+    long long sum_of_x_square;
 };
 
 
 int main()
 {
-    auto naive_cal = new Naive_Calculator();
-    auto formula_cal = new Formula_Calculator();
-    auto welford_cal = new Welford_Calculator();
-    auto special_cal = new Special_Calculator(100, 0.5);
-    auto time_cal = new Time_Calculator();
+    auto Q1_cal = new Q1_Calculator();
+    auto Q2_cal = new Q2_Calculator();
+    auto Q3_cal = new Q3_Calculator();
+    auto Q4_cal = new Q4_Calculator();
     double num;
     cout << fixed;
 
     while (cin >> num)
     {
-        naive_cal->Put(num);
-        formula_cal->Put(num);
-        welford_cal->Put(num);
-        special_cal->Put(num);
-        time_cal->Put(num);
+        Q1_cal->Put(num);
+        Q2_cal->Put(num);
+        Q3_cal->Put(num);
+        Q4_cal->Put(num);
 
-        naive_cal->Print();
-        formula_cal->Print();
-        welford_cal->Print();
-        special_cal->Print();
-        time_cal->Print();
+        Q1_cal->Print();
+        Q2_cal->Print();
+        Q3_cal->Print();
+        Q4_cal->Print();
 
         cout << endl;
     }

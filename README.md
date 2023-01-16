@@ -14,42 +14,18 @@ make all
 ## Things to consider
 1. 'catastrophic cancellation'
 - `the phenomenon that subtracting good approximations to two nearby numbers may yield a very bad approximation to the difference of the original numbers` - Wikipedia
-
 - rough rule is that if x and y match up to m significant figures, then up to m significant figures can be lost.
 
 ## Problem & Solution
 
-0. We want to get mean and variance of given values.
-- Simple. Use the definition of mean and variance
-```
-Mean(Xn) = sum(X1,X2,...Xn) / n ;
-Var(Xn) = sum( (X1-Xm)^2, (X2-Xm)^2, ...(Xn-Xm)^2) / n;
-```
-- let's call it 'Naive' method in the code.
+### Q1. How to get running variance for integer data?
+- For integer data, we can assign many significant numbers, meaning we don't need to worry about catastrophic cancellation compared to float data. (Unless the numbers are super big and vairance is small.)
+- Therefore we can save sum of X**2 and sum of X, and use the formula 'var(x) = E(X^2) - E(X)^2'
 
-1. We want to get mean and variance of stream data, with acceptable latency (can't recompute mean and variance everytime value comses)
-- Now we need to think about how we can reuse the calculation we did before.
-- For mean, it is not hard to come up with the idea
-```
-Mean(Xn+1)
-= sum(X1,X2, ... Xn+Xn+1) / (n+1) 
-= (sum(X1,X2,...Xn) / n)*(n / (n+1)) + Xn+1 / (n+1)
-= Mean(Xn) * (n / (n+1)) + Xn+1 / (n+1)
-= Mean(Xn) + (Xn+1 - Mean(Xn) ) / (n+1)
-```
-- For variance, it might be helpful to come up with this formula
-```
-Var(Xn) 
-= sum( (X1-Xm)^2, (X2-Xm)^2, ...(Xn-Xm)^2) / n;
-= sum(X1^2, X2^2, ... Xn^2) - 2*n*Xm*sum(X1,...Xn) + sum(X1,..Xn)^2 ( since n * Xm = sum(X1,...Xn)) / n
-= mean(Xn^2) - mean(Xn)^2
-```
-- Therefore if we save mean value and mean of square value, we can use a new mean value formula and get a new variance as well.
-- We can expect some problems with this method, like overflow and precisions especially for float case.
-- Let's call it 'Formula' method.
 
-2. As I said above, 'Formula' method is not numerically stable because of 'catastrophic cancellation' effect. This leads to a natural line of thinking of using variance of previous calculation directly.
-- This is called "Welford algorithm"
+### Q2. How to get running variance for float data?
+- using above method for float data has a danger of catastrophic cancellation. Double can represent 15~16 digits (https://blog.demofox.org/2017/11/21/floating-point-precision/), so when we're calculating E(X^2)- E(X)^2, we can lost up to m significant figures, making double not reliable and even negative value.
+- we can use welford algorithm.
 - Since Var(Xn) = E(Xn^2) - E(Xn)^2
 -> n * Var(Xn) = Sum(Xn^2) - n * E(Xn)^2
 = n * Var(Xn) = Sum(Xn-1 ^2) + Xn^2 - (n-1)*E(Xn-1)^2 + (n-1)*E(Xn-1)^2 - n * E(Xn)^2
@@ -57,39 +33,16 @@ Var(Xn)
 since E(Xn) = E(Xn-1) + (Xn - E(Xn-1)) / n
 = (n-1)*Var(Xn-1) + (Xn - E(Xn)) ( Xn - E(Xn-1)).
 here, let's say n*Var(Xn) as M(Xn).
+- so, M(Xn) = M(Xn-1) + (Xn - E(Xn) * (Xn - E(xn-1))
 
-As there is no too big number in this equation, this doesn't suffer from catastrophic cancellation problem.
 
-3. Can we consider a special case, where small group is having much higher number than other numbers?
-For this case, I think we can use this property.
-```
-E(aX+b) = aE(x) + b, and
-Var(aX+b) = a^2E(X)
-```
-Since small group is way larger than other group,
-we can consider calculating in two different groups and then add two group's statistics later.
-More specifically, we can change the values into 1/10000 X - u ( where u is mean of small numbers group)
-Then we can practically say small number's variance and mean is 0. 
-Then while calculating, when small number comes then we just add count of small number.
-For adding two group's statistics, I'll use this formula from wikipedia.
-![formula absolute URL](https://wikimedia.org/api/rest_v1/media/math/render/svg/dd88631832bace8b86e5b41ffcfa78f50f1b6602)
+### Q3. Can we consider a special case when small subset of values are much larger than normal values?
+- Since small subset of values are much larger, they have a danger of poluting (cancelling precision) data.
+I suggest calculating them differently and adding variance with the assumption that they're independent. ( Since Var(A + B) = Var(A) + Var(B) when they're independent.)
 
-4. Can we support a sliding window ability as well ? 
-Most direct method would be saving all data and re-calculating for each condition. (1ms, 100ms, 1s, 1m ...)
-But that would suffer from 1. memory limit and 2. re-calculation latency
-
-More better method would be having a buffer (deque) of and use of existing calculation.
-If a fixed time slot contains a fixed number of elements(meaning an element comes in every fixed amount of time), than we can simply have a fixed size deque, and then pop from front and push the new number back.
-In that case, size would be same.
-Therefore, mean(Xn) = mean(Xn-1) + (Xn - X(0)) / n and
-M(Xn) = M(Xn-1) + (xn - x0)(xn + x0 - xn - x(n-1))
-
-And then we can have many buckets for different time slot ( 1ms, 100ms, 1s, 5m ..), so we can support them quickly.
-
-Then to support a custom time slot, we can use adding two group's stat method.
-
-If we can't expect same number of elements coming in a fixed timeslot, then we can't use the formula above. So now time and element is indepedent, we need to have a separate function like, `GetLastStat(time, currentTime)`
-We can keep track of reasonable numbers, and stats, and use adding method above.
-
-So like, we we'll keep track of every 1s, 1ms, 1minute's stat.
-And if it's 00:05:30 and we want to get last 5minute's data, then we can add last 30 second's data + last 3 minutes' data + last 30 second's data.
+### Q4. Can we support a sliding window ability as well ? 
+For integer case,
+1. We can save all the values and timestamp, and find the starting time using binary search (can use map in cpp,) and then start calculating
+2. If that calculation is burdening to do in online time, we can save them in prefix-sum and use E(X^2) - E(X)^2 formula.
+For floating point case,
+3. The danger of cancellation is in that we're calculating large numbers with limited precision to get small number. We can consider shifting the values using the sample mean to get Var(x-m), so that E(X^2) and E(X^2) don't become big. 
