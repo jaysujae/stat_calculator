@@ -1,10 +1,11 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-class Integer_Calculator
+template <class T>
+class Calculator
 {
 public:
-    virtual void Put(long long num){
+    virtual void Put(T num){
     }
 
     virtual double Get_Variance(){
@@ -15,23 +16,9 @@ public:
     }
 };
 
-class Float_Calculator
-{
-public:
-    virtual void Put(double num){
-    }
-
-    virtual double Get_Variance(){
-        return 0.0;
-    }
-
-    virtual void Print(){
-    }
-};
-
-class Q1_Calculator : public Integer_Calculator{
+class Q1_Calculator : public Calculator<uint64_t>{
     public:
-    void Put(long long num)
+    void Put(uint64_t num)
     {   
         sum_of_x += num;
         sum_of_x_square += num*num;
@@ -47,12 +34,12 @@ class Q1_Calculator : public Integer_Calculator{
         return;
     }
     private:
-    long long sum_of_x;
-    long long sum_of_x_square;
-    long long counts;
+    uint64_t sum_of_x;
+    uint64_t sum_of_x_square;
+    uint64_t counts;
 };
 
-class Q2_Calculator : public Float_Calculator{
+class Q2_Calculator : public Calculator<double>{
     public:
     void Put(double num)
     {   
@@ -72,31 +59,12 @@ class Q2_Calculator : public Float_Calculator{
         return;
     }
     private:
-    long long counts;
+    uint64_t counts;
     double mean;
     double m_value;
 };
 
-struct stat{
-    double mean;
-    long long counts;
-    double m_value;
-
-    stat operator+(const stat& b) const
-    {
-        auto total_counts = counts + b.counts;
-        auto delta = b.mean - mean;
-        auto new_mean = mean + (delta)*(b.counts) / total_counts;
-        auto new_m_value = m_value + b.m_value + 
-                  delta * delta * counts * b.counts / total_counts;
-    
-        return stat{
-            new_mean, total_counts, new_m_value
-        };
-    }
-};
-
-class Q3_Calculator : public Float_Calculator{
+class Q3_Calculator : public Calculator<double>{
     public:
 
     void Put(double num)
@@ -109,7 +77,7 @@ class Q3_Calculator : public Float_Calculator{
     }
     double Get_Variance()
     {
-        big_calculator.Get_Variance() + small_calculator.Get_Variance();
+        return big_calculator.Get_Variance() + small_calculator.Get_Variance();
     }
 
     void Print()
@@ -124,7 +92,7 @@ class Q3_Calculator : public Float_Calculator{
 };
 
 
-class Q4_Calculator : public Float_Calculator{
+class Q4_Calculator : public Calculator<double>{
     public:
 
     void Put(double num)
@@ -145,11 +113,11 @@ class Q4_Calculator : public Float_Calculator{
         return sum_of_x_square / counts - pow(sum_of_x / counts, 2);
     }
 
-    double Get_Variance(long long starting_time){
+    double Get_Variance(uint64_t starting_time){
         auto sum_it = prefix_sum_of_x.lower_bound(starting_time);
         auto square_sum_it = prefix_sum_of_x_square.lower_bound(starting_time);
 
-        return square_sum_it->second / counts - pow(sum_it->second/ counts, 2);
+        return (sum_of_x_square - square_sum_it->second) / counts - pow( (sum_of_x - sum_it->second) / counts, 2);
     }
 
     void Print()
@@ -159,13 +127,13 @@ class Q4_Calculator : public Float_Calculator{
     }
 
     private:
-    long long counts;
+    uint64_t counts;
     double sample_mean;
-    long long current_timestamp;
-    map<long long, double> prefix_sum_of_x;
-    map<long long, double> prefix_sum_of_x_square;
-    long long sum_of_x;
-    long long sum_of_x_square;
+    uint64_t current_timestamp;
+    map<uint64_t, double> prefix_sum_of_x;
+    map<uint64_t, double> prefix_sum_of_x_square;
+    uint64_t sum_of_x;
+    uint64_t sum_of_x_square;
 };
 
 
