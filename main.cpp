@@ -1,6 +1,38 @@
 #include <bits/stdc++.h>
 using namespace std;
 
+struct mean{
+    uint64_t counts;
+    double value;
+
+    mean operator + (double num) {
+        auto new_counts = counts+1;
+        auto new_value = value * (counts) / (new_counts) + num / new_counts;
+        mean result = mean{counts+1, new_value};
+        return result;
+    }
+
+    //weighted mean
+    mean operator + (mean other){
+        mean res;
+        res.counts = counts + other.counts;
+        res.value = value * ((double)counts / res.counts) + other.value * ((double)other.counts / res.counts);
+        return res;
+    }
+    mean operator - (mean other){
+        mean res;
+        res.counts = counts - other.counts;
+        res.value = value * ((double)counts / res.counts) - other.value * ((double)other.counts / res.counts);
+        return res;
+    }
+    mean& operator += (double num) {
+        counts += 1;
+        value *= (double)(counts - 1)/counts;
+        value += (double)num/counts;
+        return *this;
+    }
+};
+
 template <class T>
 class Calculator
 {
@@ -16,47 +48,17 @@ public:
     }
 };
 
-struct mean{
-    uint64_t counts;
-    double value;
-
-    mean operator + (double num) {
-        auto new_counts = counts+1;
-        auto new_value = value * (counts) / (new_counts) + num / new_counts;
-        mean result = mean{counts+1, new_value};
-        return result;
-    }
-    mean operator + (mean other){
-        mean res;
-        res.counts = counts + other.counts;
-        res.value = value * ((double)counts / res.counts) + other.value * ((double)other.counts / res.counts);
-        return res;
-    }
-    mean operator - (mean other){
-        mean res;
-        res.counts = counts - other.counts;
-        res.value = value * (counts / res.counts) - other.value * (other.counts / res.counts);
-        return res;
-    }
-    mean& operator += (double num) {
-        counts += 1;
-        value *= (double)(counts - 1)/counts;
-        value += (double)num/counts;
-        return *this;
-    }
-};
-
 class Q1_Calculator : public Calculator<uint64_t>{
     private:
         mean x;
         mean x_square;
         uint64_t counts;
 
-        void update_e_x(uint64_t num){
+        void update_mean_x(uint64_t num){
             x += num;
             return;
         }
-        void update_e_x_square(uint64_t num){
+        void update_mean_x_square(uint64_t num){
             x_square += num*num;
             return;
         }
@@ -65,8 +67,8 @@ class Q1_Calculator : public Calculator<uint64_t>{
         void Put(uint64_t num)
         {   
             counts++;
-            update_e_x(num);
-            update_e_x_square(num);
+            update_mean_x(num);
+            update_mean_x_square(num);
         }
         double Get_Variance() {
             return x_square.value - x.value * x.value;
@@ -93,7 +95,7 @@ class Q2_Calculator : public Calculator<double>{
         mean x;
         double variance_times_counts;
         
-        void update_e_x(uint64_t num){
+        void update_mean_x(uint64_t num){
             x += num;
             return;
         }
@@ -102,12 +104,9 @@ class Q2_Calculator : public Calculator<double>{
     void Put(double num)
     {   
         counts++;
-
-        auto old_e_x = x.value;
-		update_e_x(num);
-
-
-		variance_times_counts += (num - x.value) * (num - old_e_x);
+        auto old_mean_x = x;
+		update_mean_x(num);
+		variance_times_counts += (num - x.value) * (num - old_mean_x.value);
     }
 
     double Get_Variance(){
@@ -122,6 +121,7 @@ class Q2_Calculator : public Calculator<double>{
 
 };
 
+//Q3 Calculator uses integer calculator Q1, because practically we can ignore small floating number.
 class Q3_Calculator : public Calculator<double>{
     private:
         Q1_Calculator big_calculator;
@@ -129,46 +129,44 @@ class Q3_Calculator : public Calculator<double>{
         int border_line = 1000;
 
     public:
-    void Put(double num)
-    {   
-        if(num > border_line){
-            big_calculator.Put(num);
+        void Put(double num)
+        {   
+            if(num > border_line){
+                big_calculator.Put(num);
+                return;
+            }
+            small_calculator.Put(num);
+        }
+        double Get_Variance()
+        {
+            return (big_calculator + small_calculator).Get_Variance();
+        }
+        void Print()
+        {
+            cout << "Q3 Variance : " << Get_Variance() << "\n";
             return;
         }
-        small_calculator.Put(num);
-    }
-    double Get_Variance()
-    {
-        return (big_calculator + small_calculator).Get_Variance();
-    }
-
-    void Print()
-    {
-        cout << "Q3 Variance : " << Get_Variance() << "\n";
-        return;
-    }
 };
 
 
 class Q4_Calculator : public Calculator<double>{
     private:
-    uint64_t counts;
     uint64_t current_timestamp;
-    vector<pair<uint64_t, mean>> e_x_window = vector<pair<uint64_t, mean>>();
-    vector<pair<uint64_t, mean>> e_x_square_window;
+    vector<pair<uint64_t, mean>> mean_x_window = vector<pair<uint64_t, mean>>();
+    vector<pair<uint64_t, mean>> mean_x_square_window;
     int capacity = 1000;
 
-    mean get_last_e_x(){
-        if(e_x_window.size() == 0){
+    mean get_last_mean_x(){
+        if(mean_x_window.size() == 0){
             return mean{0, 0};
         }
-        return e_x_window.back().second;
+        return mean_x_window.back().second;
     }
-    mean get_last_e_x_square(){
-        if(e_x_square_window.size() == 0){
+    mean get_last_mean_x_square(){
+        if(mean_x_square_window.size() == 0){
             return mean{0, 0};
         }
-        return e_x_square_window.back().second;
+        return mean_x_square_window.back().second;
     }
 
     public:
@@ -176,14 +174,13 @@ class Q4_Calculator : public Calculator<double>{
     void Put(double num)
     {   
         current_timestamp++;
-        counts++;
  
-        e_x_window.push_back({current_timestamp, get_last_e_x() + num});
-        e_x_square_window.push_back({current_timestamp, get_last_e_x_square() + num*num});
+        mean_x_window.push_back({current_timestamp, get_last_mean_x() + num});
+        mean_x_square_window.push_back({current_timestamp, get_last_mean_x_square() + num*num});
 
-        if(e_x_window.size() > capacity){
-            e_x_window.erase(e_x_window.begin());
-            e_x_square_window.erase(e_x_square_window.begin());
+        if(mean_x_window.size() > capacity){
+            mean_x_window.erase(mean_x_window.begin());
+            mean_x_square_window.erase(mean_x_square_window.begin());
             return;
         }
     }
@@ -191,17 +188,17 @@ class Q4_Calculator : public Calculator<double>{
     double Get_Variance(uint64_t starting_time)
     {
         int diff = current_timestamp - starting_time;
-        auto loc = (int)e_x_window.size() - diff;
+        auto loc = (int)mean_x_window.size() - diff;
         if(loc < 0){
             loc = 0;
         }
-        auto e_x = e_x_window[loc].second;
-        auto e_x_square = e_x_square_window[loc].second;
+        auto mean_x_by_loc = mean_x_window[loc].second;
+        auto mean_x_square_by_loc = mean_x_square_window[loc].second;
 
-        auto partial_e_x = get_last_e_x() - e_x;
-        auto partial_e_x_square = get_last_e_x_square() - e_x_square;
+        auto mean_x_from_loc = get_last_mean_x() - mean_x_by_loc;
+        auto mean_x_square_from_loc = get_last_mean_x_square() - mean_x_square_by_loc;
 
-        return partial_e_x_square.value - partial_e_x.value * partial_e_x.value;
+        return mean_x_square_from_loc.value - mean_x_from_loc.value * mean_x_from_loc.value;
     }
 
     void Print()
