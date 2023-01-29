@@ -17,51 +17,68 @@ public:
 };
 
 class Q1_Calculator : public Calculator<uint64_t>{
-    public:
-    void Put(uint64_t num)
-    {   
-        sum_of_x += num;
-        sum_of_x_square += num*num;
-        counts++;
-    }
-    double Get_Variance()
-    {
-        return sum_of_x_square / counts - pow(sum_of_x / counts, 2);
-    }
-    void Print()
-    {
-        cout << "Q1 Variance : " << Get_Variance() << "\n";
-        return;
-    }
     private:
-    uint64_t sum_of_x;
-    uint64_t sum_of_x_square;
-    uint64_t counts;
+        double e_x;
+        double e_x_square;
+        uint64_t counts;
+
+        void update_e_x(uint64_t num){
+            e_x *= (double)(counts-1)/counts;
+            e_x += (double)num/counts;
+        }
+        void update_e_x_square(uint64_t num){
+            e_x_square *= (double)(counts-1)/counts;
+            e_x_square += (double)(num*num)/counts;
+        }
+        double get_variance() {
+            return e_x_square - e_x * e_x;
+        }
+
+    public:
+        void Put(uint64_t num)
+        {   
+            counts++;
+            update_e_x(num);
+            update_e_x_square(num);
+        }
+        void Print()
+        {
+            cout << "Q1 Variance : " << get_variance() << "\n";
+            return;
+        }
 };
 
 class Q2_Calculator : public Calculator<double>{
+    private:
+        uint64_t counts;
+        double e_x;
+        double variance_times_counts;
+
+        void update_e_x(double num){
+            e_x *= (double)(counts-1)/counts;
+            e_x += num/counts;
+        }
+
+        double get_variance(){
+            return variance_times_counts/counts;
+        }
+
     public:
     void Put(double num)
     {   
         counts++;
 
-        auto old_mean = mean;
-		mean = mean + (num - mean) / counts;
-		m_value = m_value +(num - mean) * (num - old_mean);
+        auto old_e_x = e_x;
+		update_e_x(num);
+
+		variance_times_counts += (num - e_x) * (num - old_e_x);
     }
-    double Get_Variance()
-    {
-        return m_value/counts;
-    }
+
     void Print()
     {
-        cout << "Q2 Variance : " << Get_Variance() << "\n";
+        cout << "Q2 Variance : " << get_variance() << "\n";
         return;
     }
-    private:
-    uint64_t counts;
-    double mean;
-    double m_value;
 };
 
 class Q3_Calculator : public Calculator<double>{
